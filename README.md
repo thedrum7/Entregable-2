@@ -17,8 +17,7 @@ Población https://datos.bancomundial.org/indicator/SP.POP.0014.TO.ZS?end=2022&s
 - Población entre 15 y 64 años de edad (% del total)
 
 ILOSTAT (https://www.ilo.org/shinyapps/bulkexplorer23/?lang=es&id=SDG_A871_SEX_AGE_RT_A)
-- Indicador ODS 8.7.1 – Porcentaje de niños ocupados en actividades económicas (diferencia por sexo) *se debe extraer de la separación de comillas
-
+- Indicador ODS 8.6.1 – Proporción de jóvenes que no están en el sistema educativo ni ocupados ni en formación.
 ## CONTENIDO DEL REPOSITORIO
 - gastoedu.csv: base de datos de gasto en educación por país.
 - persv.csv : base de datos de la perseverancia hasta el último año de primaria a nivel mundial.
