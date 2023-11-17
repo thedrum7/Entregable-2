@@ -1,0 +1,318 @@
+---
+title: "El acceso a la educación y el indice de criminalidad a nivel mundial"
+author: "Macarena Farfan y Ximena Carrasco"
+subtitle: 'Curso: POL304 - Estadística para el análisis político 2'
+output: 
+  flexdashboard::flex_dashboard:
+    navbar:
+      - { title: "About", href: "https://github.com/thedrum7/Entregable-2" }
+    orientation: columns
+    vertical_layout: fill
+---
+<style>                     
+.navbar {
+  background-color:#B23AEE;
+  border-color:white;
+}
+.navbar-brand {
+color:white!important;
+}
+</style> 
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+```{r include=FALSE}
+library(rio)
+library(ggplot2)
+library(DT)
+library(kableExtra)
+library(modelsummary)
+```
+
+
+```{r include=FALSE}
+data = import("data_final.xlsx")
+mapMUN=sf::read_sf("World_Countries_Generalized.shp")
+```
+
+```{r}
+mapMUN2=merge(mapMUN,data,by = "ISO", all.x = T)
+```
+
+```{r}
+colnames(data)[colnames(data) == "gasto edu"] <- "gedu"
+```
+
+
+```{r}
+library(dplyr)
+a = data %>% group_by(region) %>% summarize(promedio = mean(ic, na.rm = T))
+a$promedio = round(a$promedio, 0)
+
+b = data %>% group_by(region) %>% summarize(promedio2 = mean(perseve, na.rm = T))
+b$promedio2 = round(b$promedio2, 0)
+
+c = data %>% group_by(region) %>% summarize(promedio3 = mean(gedu, na.rm = T))
+b$promedio3 = round(c$promedio3, 0)
+
+d = data %>% group_by(region) %>% summarize(promedio4 = mean(Ninguna, na.rm = T))
+b$promedio4 = round(d$promedio4, 0)
+```
+
+# Indice de criminalidad
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Mapa
+
+```{r}
+library(ggplot2)
+library(dplyr)
+mapaleyenda= ggplot(mapMUN2)+ geom_sf() + theme_light()
+
+mapaley= mapaleyenda + geom_sf(data=mapMUN2,
+              aes(fill=`ic`),color = "gray")
+      
+mapa1= mapaley +
+coord_sf() + 
+scale_fill_gradient(low = "#FCFBFF",  high = "#3D1778",breaks=seq(from=0, to=100, by=20)) + theme_void() + 
+  
+theme(axis.title = element_blank(), axis.text = element_blank(), legend.position = "right") + labs(fill=" ") + theme(legend.text = element_text(size = 8)) +
+  
+labs(title = "Indice de criminalidad en el mundo",
+     subtitle = "Escala del 0 al 100",
+    caption = "Fuente: NUMBEO 2018") +
+  
+theme(
+plot.title = element_text(color="black", size=10, face="bold"))
+
+mapa1
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### índice de criminalidad regional
+
+```{r}
+library(ggplot2)
+ggplot(a, aes(x=region, y=promedio)) +
+geom_bar(stat = "identity", lwd=2, fill= "#FFBBFF") + coord_flip()+
+  
+labs(title = "Indice de criminalidad",
+x = " ",
+y = "0 - 80")+
+geom_text(aes(label=promedio),color="#68228B", size=5, vjust=0.5)+ theme_bw()+
+ylim(c(0,80))
+```
+
+### Tabla índices
+
+```{r include=FALSE}
+cuadro = data[,c(1,5)]
+```
+
+```{r}
+colnames(cuadro)[2] = "Indice de criminalidad"
+datatable(cuadro, filter = "top")
+```
+
+
+
+
+```{r}
+modelo1=formula(ic~poblacion+perseve)
+modelo2=formula(ic~poblacion+perseve+gedu)
+modelo3=formula(ic~poblacion+perseve+gedu+Ninguna)
+```
+
+```{r}
+reg1=lm(modelo1,data=data)
+reg2=lm(modelo2,data=data)
+reg3=lm(modelo3,data=data)
+```
+
+
+# Modelando el índice
+Column {data-width=400} {.tabset}
+-----------------------------------------------------------------------
+
+### OLS
+
+```{r}
+library(modelsummary)
+models=list('Regresion (I)'=reg1,
+            'Regresion (II)'=reg2,
+            'Regresion (III)'=reg3)
+modelsummary(models, title = "Resultados de todos los modelos",
+             stars = TRUE,
+             output = "kableExtra")
+```
+
+
+
+```{r}
+dontselect=c("Country Code","ic","poblacion")
+select=setdiff(names(data),dontselect) 
+theData=data[,select]
+```
+
+```{r}
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+### OLS
+
+```{r}
+library(ggcorrplot)
+ggcorrplot(corMatrix)
+```
+
+
+
+
+```{r}
+library(dplyr)
+
+datos_ordenados <- data %>%
+  select(region, ISO, poblacion, perseve, gedu, Ninguna, ic)
+```
+
+```{r}
+dataClus=datos_ordenados[,c(4:6)]
+row.names(dataClus)=datos_ordenados$countrycode
+```
+
+```{r}
+library(cluster)
+g.dist = daisy(dataClus, metric="gower")
+```
+
+```{r}
+library(factoextra)
+set.seed(123)
+res.diana <- hcut(g.dist, k = 3,hc_func='diana')
+dataClus$diana=res.diana$cluster
+```
+
+
+```{r}
+dataClus2= merge(datos_ordenados,dataClus, by.x ="perseve", by.y ="perseve", all.x = T)
+```
+
+```{r}
+library(dplyr)
+dataClus2 <- dataClus2 %>%
+select(-gedu.y, -Ninguna.y)
+```
+
+```{r}
+mapMUN3=merge(mapMUN,dataClus2,by = "ISO", all.x = T)
+```
+
+
+# Correlación y agrupación
+Column {data-width=500} {.tabset}
+-----------------------------------------------------------------------
+
+
+### IC y Perverancia
+
+```{r}
+library(ggplot2)
+graf3<- ggplot(data, aes(x=ic, y=perseve, color = "#B23AEE")) + geom_point() +
+  geom_point(size=3, shape=20) +
+  geom_text(label=data$`ISO`, vjust=-0.5, hjust = 1,color="black", size=3) +
+  
+  
+    labs(title = "Indice de criminalidad y perseverancia en culminar sus estudios",
+       subtitle = "Correlación entre ic y perseve",
+       x = "Índice de criminalidad",
+       y = "Perseverancia") +
+  
+   scale_color_manual(values=c("#B23AEE",'Red')) +
+ theme(legend.position = "none")+
+  ylim(25,120)
+  plot(graf3, fill = data, col_pal = muted, title = "") %>% 
+  plotly::ggplotly()
+```
+
+### IC y gasto en educacion
+
+```{r}
+graf2 <- ggplot(data, aes(x=ic, y=gedu, color = "#B23AEE")) + geom_point() +
+  geom_point(size=3, shape=20) +
+  geom_text(label=data$`ISO`, vjust=-0.5, hjust = 1,color="black", size=3) +
+  
+  
+    labs(title = "Indice de criminalidad y el gasto en educación",
+       subtitle = "Correlación entre ic y gedu",
+       x = "Índice de criminalidad",
+       y = "Gasto en educación") +
+  
+   scale_color_manual(values=c("#B23AEE",'Red')) +
+ theme(legend.position = "none")+
+  ylim(0,30)
+
+  plot(graf2, fill = data, col_pal = muted, title = "") %>% 
+  plotly::ggplotly()
+```
+
+### IC y no estudia
+
+```{r}
+library(ggplotlyExtra)
+graf1 <- ggplot(data, aes(x=ic, y=Ninguna, color = "#B23AEE")) + geom_point() +
+  geom_point(size=3, shape=20) +
+  geom_text(label=data$`ISO`, vjust=-0.5, hjust = 1,color="black", size=3) +
+  
+  
+    labs(title = "Indice de criminalidad y grupo de niños que no estudian",
+       subtitle = "Correlación entre ic y ninguna",
+       x = "Índice de criminalidad",
+       y = "No ocupa, no estudia") +
+  
+   scale_color_manual(values=c("#B23AEE",'Red')) +
+ theme(legend.position = "none")+
+  ylim(0,70)
+
+  plot(graf1, fill = data, col_pal = muted, title = "") %>% 
+  plotly::ggplotly()
+```
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+
+### Conglomeración mundial
+
+```{r}
+ggplot(data = mapMUN3) + 
+  geom_sf(aes(fill = diana), color = "gray") +
+  scale_fill_gradient(high = "#0D0887", low = "#FADB24", breaks = c(1, 2, 3), labels = c("Grupo 1", "Grupo 2", "Grupo 3")) +
+  labs(fill = "Grupos de Conglomerados",
+       title = "Conglomerados",
+       subtitle = "separados en 3 grupos",
+       caption = "Fuente: Diana") +
+  theme(
+    axis.title = element_blank(), 
+    axis.text = element_blank(), 
+    legend.position = "right",
+    plot.title = element_text(color = "black", size = 10, face = "bold"),
+    legend.text = element_text(size = 8)
+  ) +
+  coord_sf()
+
+```
+
+
+
+
