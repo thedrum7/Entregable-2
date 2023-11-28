@@ -166,7 +166,15 @@ library(dplyr)
 dataClus2 <- dataClus2 %>%
 select(-gedu.y, -Ninguna.y)
 ```
+```{r}
+str(mapMUN3)
+```
 
+```{r}
+mapMUN3$ISO=as.factor(mapMUN3$ISO)
+mapMUN3$COUNTRY=as.factor(mapMUN3$COUNTRY)
+mapMUN3$COUNTRYAFF=as.factor(mapMUN3$COUNTRYAFF)
+```
 
 ```{r}
 mapMUN3=merge(mapMUN,dataClus2,by = "ISO", all.x = T)
